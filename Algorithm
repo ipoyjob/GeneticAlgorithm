@@ -1,0 +1,162 @@
+# library
+ 
+import random
+import math
+import matplotlib.pyplot as plt
+import numpy as np
+
+# deklarasi variabel global
+
+# batasan x
+xr = {
+    "min" : -1,
+    "max" : 2
+}
+
+#batasan y
+yr = {
+    "min" : -1,
+    "max" : 1
+}
+
+#probabilitas crossover
+prob_crossover = 0.6
+
+#probabilitas mutasi
+prob_mutation = 0.01
+
+#banyaknya populasi
+n_population = 10
+
+#panjang kromosom
+len_chrom = 10
+
+#nilai elitisme
+n_elitisme = 2
+
+#MaxGeneration
+n_generation = 100
+
+#ukuran turnament
+tournament_size = 6
+
+# generate populasi dengan kromosom sepanjang "len_chrom" dan sebanyak "n_population"
+
+def initiate_random_population(len_chrom,n_population):
+  population = []
+  for i in range(n_population):
+        chromosom = []
+        for j in range(len_chrom):
+          chromosom.append(random.randint(0,1))
+        population.append(chromosom)
+  return population
+
+# decode kromosom
+ 
+def decode_kromosom(chromosom, xr, yr):
+    halfkrom = len(chromosom)//2
+ 
+    krom_x = chromosom[:halfkrom]
+    krom_y = chromosom[halfkrom:]
+    
+    len_x = len(krom_x)
+    len_y = len(krom_y)
+ 
+    atas_x = 0
+    atas_y = 0
+    bawah_x = 0
+    bawah_y = 0
+    for i in range(len_x):
+        atas_x  += krom_x[i] * 2**-(i+1)
+        bawah_x += 2**-(i+1)
+    for i in range(len_y):
+        atas_y += krom_y[i] * 2**-(i+1)
+        bawah_y += 2**-(i+1)
+ 
+    x = xr["min"]+(atas_x*(xr["max"]-xr["min"])/bawah_x)
+    y = yr["min"]+(atas_y*(yr["max"]-yr["min"])/bawah_y)
+    return x,y
+
+# ngedefinisiin fitness, ngereturn nilai si fungsi yang dipake tadi
+ 
+def fitness(x,y):
+    return h(x,y)
+
+# ngedefinisiin rumus yang disuruh
+
+def h(x,y):
+    return (math.cos(x**2)*math.sin(y**2)) + (x + y)
+
+# parent selection
+
+def parent_selection(population, fitness_pop,tournament_size):
+    np.random.shuffle(population)
+    pop_tour = []
+    pop_tour = population[:tournament_size]
+
+    parent = []
+    sorted_population = [k for _, k in sorted(zip(fitness_pop, pop_tour), reverse=True)] #decs
+    parent = sorted_population[:2]
+
+    return parent
+
+# crossover
+
+def crossover(parent, len_krom):
+    cross_point = random.randint(1,len_krom-1)
+    
+    child = [[],[]]
+    child[0] = parent[0][:cross_point] + parent[1][cross_point:]
+    child[1] = parent[1][:cross_point] + parent[0][cross_point:]
+
+    return child
+
+# mutasi
+def mutation(child, prob, len_krom):
+    for i in range(len(child)):
+        for j in range(len_krom):
+            if random.random() <= prob:
+                child[i][j] = [0, 1][not child[i][j]]
+    return child
+
+#main program
+
+best_generation = []
+population = initiate_random_population(len_chrom, n_population)
+for i in range(n_generation):
+    fitness_pop = []
+    for chromosom in population:
+        x,y = decode_kromosom(chromosom, xr, yr)
+        fit = fitness(x,y)
+        fitness_pop.append(fit)
+
+    best_generation.append(max(fitness_pop))
+    
+    sorted_population = [k for _, k in sorted(zip(fitness_pop, population), reverse=True)]
+    
+    new_population = sorted_population[:n_elitisme]
+    while len(new_population) < n_population:
+        parent = parent_selection(population, fitness_pop,tournament_size)
+
+        if random.random() < prob_crossover:
+            child = crossover(parent, len_chrom)
+            child = mutation(child, prob_mutation, len_chrom)
+        else:
+            child = parent + []
+
+        new_population = new_population + child
+
+    population = new_population
+
+print('Kromosom terbaik:', chromosom)
+print()
+print('Fitness dari kromosom terbaik:', fit)
+print()
+print('Dekode Kromosom terbaik')
+print('x:', x)
+print('y:', y)
+
+plt.plot(range(1, n_generation+1), best_generation)
+plt.xlabel("Generasi")
+plt.ylabel("Fitness")
+plt.show()
